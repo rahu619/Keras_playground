@@ -1,0 +1,9 @@
+APP:
+  GLOVE_PATH: /Users/rahulrajan/Documents/nlp/data/glove.6B.100d.txt
+
+DATABASE:
+  HOST: 127.0.0.1
+  PORT: 5432  
+  DB: epo
+  USER: admin
+  PASSWORD: password
