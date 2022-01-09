@@ -16,7 +16,7 @@ class WordEmbedding:
 
 
     def getEmbeddingMatrix(self, vocab_size, tokenizer):
-        embedding_matrix = zeros((vocab_size, 100))
+        embedding_matrix = zeros((vocab_size, 300))
         for word, index in tokenizer.word_index.items():
             embedding_vector = self.embeddings_dictionary.get(word)
             if embedding_vector is not None:

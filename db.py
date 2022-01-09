@@ -9,14 +9,13 @@ class DbContext:
                        .format(db_dict['HOST'], db_dict['PORT'], db_dict['DB'], db_dict['USER'], db_dict['PASSWORD']))
         
     def get_claims(self):
-        return self.create_dataframe("SELECT claim_text FROM public.claims ORDER BY id")
+        return self.create_dataframe("SELECT claim_text FROM public.claims")
 
     def get_dependencies(self):
         """The dependency result will be in rugged format"""
         return self.create_dataframe("""SELECT dependency from public.patent_claim_dependencies AS pd 
                                    INNER JOIN claims as c
                                    ON pd.claim_id = c.id
-                                   ORDER BY pd.claim_id
                                 """)
 
 

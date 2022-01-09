@@ -1,5 +1,5 @@
 APP:
-  GLOVE_PATH: /Users/rahulrajan/Documents/nlp/data/glove.6B.100d.txt
+  GLOVE_PATH: /Users/gokulrajan/Documents/nlp/data/glove.6B.300d.txt
 
 DATABASE:
   HOST: 127.0.0.1
