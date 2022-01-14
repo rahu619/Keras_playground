@@ -9,7 +9,7 @@ import yaml
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.layers import Dense, Input, Embedding, LSTM
+from keras.layers import Dense, Input, Embedding, LSTM, MaxPool1D, Dropout
 from keras.models import Model, load_model
 from keras.utils.vis_utils import plot_model
 
@@ -21,6 +21,7 @@ from db import DbContext
 from process_module import Process
 from word_embedding import WordEmbedding
 
+from tensorflow.keras.optimizers import SGD
 class Main:
     config_path = None
     config_dict = {}
@@ -83,15 +84,15 @@ class Main:
         sentences = list(claims_df['claim_text'])
         for sen in sentences:
             X.append(self.processObj.preprocess(sen))
-
-        y = dep_df.values
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            
+        y = dep_df.values        
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2)
         
         # Exploring data
         print("Training entries: {}, test entries: {}".format(len(self.X_train), len(self.y_train)))
 
     def tokenize(self):
-        tokenizer_obj = Tokenizer(num_words=3000)
+        tokenizer_obj = Tokenizer(num_words=500)
         tokenizer_obj.fit_on_texts(self.X_train)
         self.X_train = tokenizer_obj.texts_to_sequences(self.X_train)
         self.X_test = tokenizer_obj.texts_to_sequences(self.X_test)
@@ -108,13 +109,24 @@ class Main:
             
     def __create_model(self, print_model_details = False):
         # Functional API Keras
+        # deep_input = Input(shape=(self.maxlen,))
+        # embedding_matrix = self.get_embedding_matrix()
+        # embedding_layer = Embedding(self.vocab_size, 300, weights=[embedding_matrix], trainable=False)(deep_input)
+        # LSTM_Layer_1 = LSTM(128)(embedding_layer)
+        # dense_layer_1 = Dense(12, activation='sigmoid')(LSTM_Layer_1)
+        
         deep_input = Input(shape=(self.maxlen,))
         embedding_matrix = self.get_embedding_matrix()
         embedding_layer = Embedding(self.vocab_size, 300, weights=[embedding_matrix], trainable=False)(deep_input)
-        LSTM_layer = LSTM(256)(embedding_layer)
-        dense_layer = Dense(22, activation='sigmoid')(LSTM_layer)
-        model = Model(inputs=deep_input, outputs=dense_layer)
-        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
+        LSTM_layer = LSTM(60)(embedding_layer)
+        # global_max_pooling_layer = MaxPool1D()(LSTM_layer)
+        dropout_layer = Dropout(0.1)(LSTM_layer)
+        dense_layer = Dense(50, activation="relu")(dropout_layer)
+        dropout_layer_1 = Dropout(0.1)(dense_layer)
+        dense_layer_1 = Dense(12, activation='sigmoid')(dropout_layer_1)
+        
+        model = Model(inputs=deep_input, outputs=dense_layer_1)
+        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
         print('Model compilation done.')
         
         if print_model_details:
@@ -131,7 +143,7 @@ class Main:
         
         self.model = self.__create_model()
         # self.trained_model = model.fit(self.X_train, self.y_train, batch_size=256, epochs=5, verbose=1, validation_split=0.2)
-        self.trained_model_history = self.model.fit(self.X_train, self.y_train, batch_size=400, epochs=2, verbose=1, validation_split=0.33)
+        self.trained_model_history = self.model.fit(self.X_train, self.y_train, batch_size=32, epochs=2, verbose=1, validation_split=0.1)
         self.model.save(self.trained_model_path)
         print("Saving trained model")
             
@@ -145,22 +157,19 @@ class Main:
         if self.trained_model_history:
             
             # Plotting loss and accuracy values for training and test sets to see if our model is overfitting
-            plt.plot(self.trained_model_history.history['val_acc'])
-
-            plt.title('model accuracy')
-            plt.ylabel('accuracy')
-            plt.xlabel('epoch')
-            plt.legend(['train','test'], loc='upper left')
-            plt.show()
-
-            plt.plot(self.trained_model_history.history['loss'])
-            plt.plot(self.trained_model_history.history['val_loss'])
-
-            plt.title('model loss')
-            plt.ylabel('loss')
-            plt.xlabel('epoch')
-            plt.legend(['train','test'], loc='upper left')
-            plt.show()
+            self.plot_result("loss")
+            self.plot_result("categorical_accuracy")
+            
+            
+    def plot_result(self, item):
+        plt.plot(self.trained_model_history.history[item], label=item)
+        plt.plot(self.trained_model_history.history["val_" + item], label = "val_" + item)
+        plt.xlabel("Epochs")
+        plt.ylabel(item)
+        plt.title("Train and Validation {} Over Epochs".format(item), fontsize=14)
+        plt.legend()
+        plt.grid()
+        plt.show()
 
 
 
